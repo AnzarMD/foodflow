@@ -1,0 +1,4 @@
+CREATE DATABASE restaurant_db;
+
+GRANT ALL PRIVILEGES ON DATABASE order_db TO foodflow;
+GRANT ALL PRIVILEGES ON DATABASE restaurant_db TO foodflow;

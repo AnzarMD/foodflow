@@ -1,0 +1,68 @@
+version: '3.9'
+
+networks:
+  foodflow-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: foodflow-postgres
+    networks:
+      - foodflow-net
+    environment:
+      POSTGRES_USER: foodflow
+      POSTGRES_PASSWORD: foodflow_secret
+      POSTGRES_DB: order_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foodflow -d order_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: foodflow-redis
+    networks:
+      - foodflow-net
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: foodflow-rabbitmq
+    networks:
+      - foodflow-net
+    environment:
+      RABBITMQ_DEFAULT_USER: foodflow
+      RABBITMQ_DEFAULT_PASS: foodflow_secret
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
