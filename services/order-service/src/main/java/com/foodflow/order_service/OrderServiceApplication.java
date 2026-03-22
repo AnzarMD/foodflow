@@ -5,8 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @EnableJpaAuditing
-@SpringBootApplication
-public class OrderServiceApplication {
+@SpringBootApplication(exclude = {
+		org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class
+})public class OrderServiceApplication {
 
 	public static void main(String[] args) {
 

@@ -78,4 +78,33 @@ public class GlobalExceptionHandler {
                 .timestamp(Instant.now().toString())
                 .build());
     }
+
+
+    @ExceptionHandler(TokenException.class)
+    public ResponseEntity<ErrorResponse> handleTokenException(
+            TokenException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ErrorResponse.builder()
+                .status(401)
+                .error("INVALID_TOKEN")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(Instant.now().toString())
+                .build());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(
+            ResourceNotFoundException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.builder()
+                .status(404)
+                .error("NOT_FOUND")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(Instant.now().toString())
+                .build());
+    }
 }
