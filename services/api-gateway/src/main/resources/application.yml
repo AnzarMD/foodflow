@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/auth/**, /api/v1/orders/**, /api/v1/users/**
+#          filters:
+#            - JwtAuthGatewayFilter
+
+        - id: restaurant-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/restaurants/**
+#          filters:
+#            - JwtAuthGatewayFilter
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: your-256-bit-secret-key-here-make-it-long-enough-for-hs256-algorithm
+
+# Public paths ? JWT filter skips these
+gateway:
+  public-paths:
+    - /api/v1/auth/register
+    - /api/v1/auth/login
+    - /api/v1/auth/refresh
