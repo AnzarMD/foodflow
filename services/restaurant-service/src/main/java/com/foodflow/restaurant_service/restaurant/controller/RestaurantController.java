@@ -22,20 +22,19 @@ public class RestaurantController {
 
     private final RestaurantService restaurantService;
 
-    // Public — no auth required
+    // ── Existing endpoints (unchanged) ──────────────────────────────────────
+
     @GetMapping
     public ResponseEntity<Page<RestaurantResponse>> getAllRestaurants(
             @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(restaurantService.getAllActiveRestaurants(pageable));
     }
 
-    // Public — no auth required
     @GetMapping("/{id}/menu")
     public ResponseEntity<List<MenuItemResponse>> getMenu(@PathVariable UUID id) {
         return ResponseEntity.ok(restaurantService.getMenuByRestaurantId(id));
     }
 
-    // Protected — RESTAURANT_OWNER only
     @PostMapping
     @PreAuthorize("hasRole('RESTAURANT_OWNER')")
     public ResponseEntity<RestaurantResponse> createRestaurant(
@@ -44,7 +43,6 @@ public class RestaurantController {
                 .body(restaurantService.createRestaurant(request));
     }
 
-    // Protected — RESTAURANT_OWNER only
     @PostMapping("/{id}/menu")
     @PreAuthorize("hasRole('RESTAURANT_OWNER')")
     public ResponseEntity<MenuItemResponse> addMenuItem(
@@ -53,4 +51,33 @@ public class RestaurantController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(restaurantService.addMenuItem(id, request));
     }
+
+    // ── Day 5: Incoming Order Management ────────────────────────────────────
+
+    @GetMapping("/incoming-orders")
+    @PreAuthorize("hasRole('RESTAURANT_OWNER')")
+    public ResponseEntity<List<IncomingOrderResponse>> getIncomingOrders() {
+        return ResponseEntity.ok(restaurantService.getIncomingOrders());
+    }
+
+    @PatchMapping("/orders/{orderId}/accept")
+    @PreAuthorize("hasRole('RESTAURANT_OWNER')")
+    public ResponseEntity<IncomingOrderResponse> acceptOrder(@PathVariable UUID orderId) {
+        return ResponseEntity.ok(restaurantService.acceptOrder(orderId));
+    }
+
+    @PatchMapping("/orders/{orderId}/reject")
+    @PreAuthorize("hasRole('RESTAURANT_OWNER')")
+    public ResponseEntity<IncomingOrderResponse> rejectOrder(@PathVariable UUID orderId) {
+        return ResponseEntity.ok(restaurantService.rejectOrder(orderId));
+    }
+
+    //Check
+//    @PostMapping("/test/incoming-order")
+//    @PreAuthorize("hasRole('RESTAURANT_OWNER')")
+//    public ResponseEntity<IncomingOrderResponse> createTestOrder(
+//            @Valid @RequestBody CreateIncomingOrderRequest request) {
+//        return ResponseEntity.status(HttpStatus.CREATED)
+//                .body(restaurantService.createTestIncomingOrder(request));
+//    }
 }

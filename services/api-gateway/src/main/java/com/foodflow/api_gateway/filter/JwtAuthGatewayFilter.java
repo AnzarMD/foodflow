@@ -85,17 +85,29 @@ public class JwtAuthGatewayFilter implements GlobalFilter, Ordered {
         }
     }
 
+//    private boolean isPublicPath(String path, String method) {
+//        // Always public
+//        if (PUBLIC_PATHS.stream().anyMatch(path::startsWith)) {
+//            return true;
+//        }
+//        // Public only for GET requests (browsing restaurants/menus)
+//        if ("GET".equals(method) && PUBLIC_GET_PATHS.stream().anyMatch(path::startsWith)) {
+//            return true;
+//        }
+//        return false;
+//    }
     private boolean isPublicPath(String path, String method) {
-        // Always public
-        if (PUBLIC_PATHS.stream().anyMatch(path::startsWith)) {
-            return true;
-        }
-        // Public only for GET requests (browsing restaurants/menus)
-        if ("GET".equals(method) && PUBLIC_GET_PATHS.stream().anyMatch(path::startsWith)) {
-            return true;
-        }
-        return false;
+    // Auth endpoints are always public
+    if (PUBLIC_PATHS.stream().anyMatch(path::startsWith)) return true;
+
+    // Only these specific GET paths are public — NOT /incoming-orders or anything else
+    if ("GET".equals(method)) {
+        return path.equals("/api/v1/restaurants")          // list all restaurants
+                || path.matches("/api/v1/restaurants/[^/]+/menu"); // get menu for a restaurant
     }
+
+    return false;
+}
 
     private String extractToken(ServerHttpRequest request) {
         List<String> headers = request.getHeaders().get("Authorization");
