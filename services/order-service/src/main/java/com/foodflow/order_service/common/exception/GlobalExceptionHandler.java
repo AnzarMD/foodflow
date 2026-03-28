@@ -13,6 +13,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -69,6 +71,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGeneral(
             Exception ex,
             HttpServletRequest request) {
+        log.error("Unhandled exception on {}: {}", request.getRequestURI(), ex.getMessage(), ex); // ← add this
 
         return ResponseEntity.internalServerError().body(ErrorResponse.builder()
                 .status(500)
