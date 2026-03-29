@@ -23,6 +23,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+  rabbitmq: # ← ADD THIS BLOCK
+    host: localhost
+    port: 5672
+    username: foodflow
+    password: foodflow_secret
+    virtual-host: /
 
 server:
   port: 8081

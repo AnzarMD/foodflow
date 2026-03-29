@@ -14,6 +14,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.foodflow.order_service.order.event.OrderPlacedEvent;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import com.foodflow.order_service.common.config.RabbitMQConfig;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,6 +29,8 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final RabbitTemplate rabbitTemplate;
+
 
     private UUID getCurrentUserId() {
         return UUID.fromString(
@@ -38,7 +43,6 @@ public class OrderService {
         User customer = userRepository.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Build order items and calculate total
         List<OrderItem> items = request.getItems().stream()
                 .map(i -> OrderItem.builder()
                         .menuItemId(i.getMenuItemId())
@@ -61,13 +65,42 @@ public class OrderService {
                 .status(Order.OrderStatus.PENDING)
                 .build();
 
-        // Link items to order
         items.forEach(item -> item.setOrder(order));
         order.getItems().addAll(items);
 
         Order saved = orderRepository.save(order);
         log.info("Order placed: {} by customer: {}", saved.getId(), customerId);
-        // TODO Day 7: publish OrderPlaced event to RabbitMQ
+
+        // Publish OrderPlaced event to RabbitMQ
+        OrderPlacedEvent event = OrderPlacedEvent.builder()
+                .orderId(saved.getId())
+                .customerId(customerId)
+                .restaurantId(saved.getRestaurantId())
+                .restaurantName(saved.getRestaurantName())
+                .deliveryAddress(saved.getDeliveryAddress())
+                .totalAmount(saved.getTotalAmount())
+                .items(saved.getItems().stream()
+                        .map(i -> OrderPlacedEvent.OrderItemDetail.builder()
+                                .menuItemId(i.getMenuItemId())
+                                .name(i.getName())
+                                .unitPrice(i.getUnitPrice())
+                                .quantity(i.getQuantity())
+                                .build())
+                        .toList())
+                .build();
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE,           // ← which exchange
+                RabbitMQConfig.ROUTING_KEY_ORDER_PLACED,  // ← routing key
+                event                              // ← payload (serialized to JSON automatically)
+        );
+        // ↑ This call is fire-and-forget from the HTTP request perspective.
+        //   The order is already saved to DB above. Even if RabbitMQ is temporarily
+        //   unreachable, the order exists. The event publish failure would throw
+        //   an exception here — we'll handle that more robustly in production
+        //   with publisher confirms, but for now this is fine for development.
+
+        log.info("OrderPlaced event published for order: {}", saved.getId());
         return toResponse(saved);
     }
 
