@@ -29,7 +29,8 @@ public class JwtAuthGatewayFilter implements GlobalFilter, Ordered {
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/v1/auth/register",
             "/api/v1/auth/login",
-            "/api/v1/auth/refresh"
+            "/api/v1/auth/refresh",
+            "/ws"
     );
 
     // Public GET paths — no token needed to browse restaurants/menus
@@ -97,15 +98,11 @@ public class JwtAuthGatewayFilter implements GlobalFilter, Ordered {
 //        return false;
 //    }
     private boolean isPublicPath(String path, String method) {
-    // Auth endpoints are always public
     if (PUBLIC_PATHS.stream().anyMatch(path::startsWith)) return true;
-
-    // Only these specific GET paths are public — NOT /incoming-orders or anything else
     if ("GET".equals(method)) {
-        return path.equals("/api/v1/restaurants")          // list all restaurants
-                || path.matches("/api/v1/restaurants/[^/]+/menu"); // get menu for a restaurant
+        return path.equals("/api/v1/restaurants")
+                || path.matches("/api/v1/restaurants/[^/]+/menu");
     }
-
     return false;
 }
 

@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: notification-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8083
+
+app:
+  jwt:
+    secret: your-256-bit-secret-key-here-make-it-long-enough-for-hs256-algorithm
+    # Must be IDENTICAL to order-service and api-gateway secret

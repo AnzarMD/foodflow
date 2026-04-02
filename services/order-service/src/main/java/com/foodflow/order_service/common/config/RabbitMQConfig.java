@@ -79,11 +79,13 @@ public class RabbitMQConfig {
 
     @Bean
     public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
-        // ↑ Tells RabbitTemplate to serialize Java objects as JSON
-        //   and deserialize JSON back to Java objects.
-        //   Without this, Spring uses Java serialization (binary) by default,
-        //   which is brittle and unreadable in the RabbitMQ UI.
+        Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
+        converter.setAlwaysConvertToInferredType(true);
+        // ↑ Tells the converter to use the method parameter type (OrderAcceptedEvent
+        // or OrderRejectedEvent) for deserialization, rather than relying solely on
+        // the __TypeId__ header. This is what makes two @RabbitListener methods on
+        // the same queue work correctly — each gets the right type.
+        return converter;
     }
 
     @Bean
