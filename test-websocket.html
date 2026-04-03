@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>FoodFlow WebSocket Test Client</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        
+        h2 {
+            color: #e94560;
+        }
+        
+        input {
+            width: 600px;
+            padding: 8px;
+            background: #16213e;
+            color: #eee;
+            border: 1px solid #0f3460;
+        }
+        
+        button {
+            padding: 8px 16px;
+            margin: 4px;
+            background: #e94560;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #c73652;
+        }
+        
+        #status {
+            margin: 16px 0;
+            padding: 10px;
+            font-weight: bold;
+        }
+        
+        .connected {
+            color: #00ff88;
+        }
+        
+        .disconnected {
+            color: #888;
+        }
+        
+        .error {
+            color: #ff4444;
+        }
+        
+        #messages {
+            margin-top: 20px;
+        }
+        
+        .msg {
+            padding: 8px;
+            margin: 4px 0;
+            background: #16213e;
+            border-left: 3px solid #0f3460;
+        }
+        
+        .msg .time {
+            color: #888;
+            font-size: 0.85em;
+        }
+        
+        .msg .payload {
+            color: #00ff88;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>🍔 FoodFlow WebSocket Test Client</h2>
+
+    <label>Customer JWT Token:</label><br>
+    <input id="token" placeholder="Paste accessToken from POST /api/v1/auth/login here" /><br><br>
+
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="clearMessages()">Clear</button>
+
+    <div id="status" class="disconnected">● Not connected</div>
+
+    <div id="messages"></div>
+
+    <script>
+        var stompClient = null;
+
+        function connect() {
+            var token = document.getElementById('token').value.trim();
+            if (!token) {
+                alert('Paste your JWT token first');
+                return;
+            }
+
+            setStatus('Connecting...', 'disconnected');
+
+            var socket = new SockJS('http://localhost:8083/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null; // suppress STOMP debug logs
+
+            stompClient.connect({
+                    'Authorization': 'Bearer ' + token
+                },
+                function(frame) {
+                    setStatus('● Connected — listening for order notifications', 'connected');
+                    stompClient.subscribe('/user/queue/notifications', function(msg) {
+                        displayMessage(msg.body);
+                    });
+                },
+                function(error) {
+                    setStatus('● Error: ' + error, 'error');
+                }
+            );
+        }
+
+        function disconnect() {
+            if (stompClient) {
+                stompClient.disconnect();
+                stompClient = null;
+            }
+            setStatus('● Disconnected', 'disconnected');
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        function displayMessage(body) {
+            var container = document.getElementById('messages');
+            var div = document.createElement('div');
+            div.className = 'msg';
+
+            var parsed;
+            try {
+                parsed = JSON.parse(body);
+            } catch (e) {
+                parsed = null;
+            }
+
+            div.innerHTML =
+                '<div class="time">' + new Date().toLocaleTimeString() + '</div>' +
+                '<div class="payload">' +
+                (parsed ?
+                    '📦 Order: ' + parsed.orderId + ' → Status: <strong>' + parsed.status + '</strong>' :
+                    body) +
+                '</div>';
+
+            container.insertBefore(div, container.firstChild);
+        }
+
+        function setStatus(text, cls) {
+            var el = document.getElementById('status');
+            el.textContent = text;
+            el.className = cls;
+        }
+    </script>
+</body>
+
+</html>
