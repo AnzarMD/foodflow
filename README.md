@@ -1,6 +1,6 @@
 # 🍔 FoodFlow — Distributed Food Delivery Platform
 
-A production-grade distributed microservices system built with Java 21, Spring Boot 3.5, React, RabbitMQ, Redis, and WebSocket. Features real-time order status updates pushed to the customer browser the moment a restaurant owner accepts their order.
+A production-grade distributed microservices system built with Java 21, Spring Boot 3.5, React, RabbitMQ, Redis, and WebSocket. Features real-time order status updates pushed to the customer's browser the moment a restaurant owner accepts their order.
 
 ![CI](https://github.com/AnzarMD/foodflow/actions/workflows/ci.yml/badge.svg)
 
