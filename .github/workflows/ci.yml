@@ -107,6 +107,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+          #New line is here
+      - name: Make mvnw executable
+        run: find . -name "mvnw" -exec chmod +x {} \;
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
