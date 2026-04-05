@@ -11,11 +11,12 @@ volumes:
 
 services:
 
+  # ── Infrastructure ────────────────────────────────────────────────────────
+
   postgres:
     image: postgres:16-alpine
     container_name: foodflow-postgres
-    networks:
-      - foodflow-net
+    networks: [foodflow-net]
     environment:
       POSTGRES_USER: foodflow
       POSTGRES_PASSWORD: foodflow_secret
@@ -34,8 +35,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: foodflow-redis
-    networks:
-      - foodflow-net
+    networks: [foodflow-net]
     ports:
       - "6379:6379"
     volumes:
@@ -50,8 +50,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: foodflow-rabbitmq
-    networks:
-      - foodflow-net
+    networks: [foodflow-net]
     environment:
       RABBITMQ_DEFAULT_USER: foodflow
       RABBITMQ_DEFAULT_PASS: foodflow_secret
@@ -66,3 +65,103 @@ services:
       interval: 15s
       timeout: 10s
       retries: 5
+
+  # ── Application Services ──────────────────────────────────────────────────
+
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: foodflow-order-service
+    networks: [foodflow-net]
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+      # ↑ Inside Docker network, services talk to each other by container name.
+      #   "postgres" is the service name, NOT localhost. Port is 5432 (internal).
+      SPRING_DATASOURCE_USERNAME: foodflow
+      SPRING_DATASOURCE_PASSWORD: foodflow_secret
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: foodflow
+      SPRING_RABBITMQ_PASSWORD: foodflow_secret
+      SPRING_RABBITMQ_VIRTUAL_HOST: /
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      APP_JWT_SECRET: your-256-bit-secret-key-here-make-it-long-enough-for-hs256-algorithm
+      APP_JWT_ACCESS_TOKEN_EXPIRY: 900000
+      APP_JWT_REFRESH_TOKEN_EXPIRY: 604800000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # ↑ depends_on with condition: service_healthy means Docker waits for the
+    #   healthcheck to pass before starting this service. Without this,
+    #   the app starts before the DB is ready and crashes on first connection.
+
+  restaurant-service:
+    build:
+      context: ./services/restaurant-service
+      dockerfile: Dockerfile
+    container_name: foodflow-restaurant-service
+    networks: [foodflow-net]
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/restaurant_db
+      SPRING_DATASOURCE_USERNAME: foodflow
+      SPRING_DATASOURCE_PASSWORD: foodflow_secret
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: foodflow
+      SPRING_RABBITMQ_PASSWORD: foodflow_secret
+      SPRING_RABBITMQ_VIRTUAL_HOST: /
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: foodflow-notification-service
+    networks: [foodflow-net]
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      APP_JWT_SECRET: your-256-bit-secret-key-here-make-it-long-enough-for-hs256-algorithm
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: foodflow-api-gateway
+    networks: [foodflow-net]
+    ports:
+      - "8080:8080"
+    environment:
+      APP_JWT_SECRET: your-256-bit-secret-key-here-make-it-long-enough-for-hs256-algorithm
+      SPRING_CLOUD_GATEWAY_ROUTES_0_ID: order-service
+      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://order-service:8081
+      SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: Path=/api/v1/auth/**,/api/v1/orders/**,/api/v1/users/**
+      SPRING_CLOUD_GATEWAY_ROUTES_1_ID: restaurant-service
+      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://restaurant-service:8082
+      SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: Path=/api/v1/restaurants/**
+      SPRING_CLOUD_GATEWAY_ROUTES_2_ID: notification-service
+      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: http://notification-service:8083
+      SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0: Path=/ws/**
+    depends_on:
+      - order-service
+      - restaurant-service
+      - notification-service
