@@ -4,7 +4,7 @@ export const placeOrder = (orderData) =>
   axiosInstance.post('/api/v1/orders', orderData).then((r) => r.data);
 
 export const getMyOrders = () =>
-  axiosInstance.get('/api/v1/orders/my').then((r) => r.data);
+  axiosInstance.get('/api/v1/orders/my?size=50&sort=createdAt,desc').then((r) => r.data);
 
 export const getOrder = (orderId) =>
   axiosInstance.get(`/api/v1/orders/${orderId}`).then((r) => r.data);

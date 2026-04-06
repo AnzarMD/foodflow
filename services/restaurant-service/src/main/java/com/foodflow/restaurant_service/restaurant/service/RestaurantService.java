@@ -182,7 +182,8 @@ public class RestaurantService {
     private RestaurantResponse toResponse(Restaurant r) {
         return RestaurantResponse.builder()
                 .id(r.getId())
-                .name(r.getName())
+                .ownerId(r.getOwnerId())
+                .name(r.getName()) 
                 .address(r.getAddress())
                 .cuisineType(r.getCuisineType())
                 .description(r.getDescription())

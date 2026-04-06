@@ -7,13 +7,14 @@ import { useAuth } from '../hooks/useAuth';
 import { useWebSocket } from '../hooks/useWebSocket';
 
 export default function MyOrdersPage() {
-  const { accessToken } = useAuth();
+  const { accessToken, loading } = useAuth();
   const queryClient = useQueryClient();
   const { lastMessage, connected } = useWebSocket(accessToken);
 
   const { data, isLoading } = useQuery({
     queryKey: ['myOrders'],
     queryFn: getMyOrders,
+    refetchOnMount: true,
   });
 
   const orders = data?.content ?? [];
@@ -39,6 +40,13 @@ export default function MyOrdersPage() {
     //   The server already updated the DB — we just sync the UI.
   }, [lastMessage, queryClient]);
 
+  if (loading) {
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="text-white">Loading...</div>
+    </div>
+  );
+}
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Navbar />

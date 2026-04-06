@@ -14,3 +14,12 @@ export const acceptOrder = (orderId) =>
 
 export const rejectOrder = (orderId) =>
   axiosInstance.patch(`/api/v1/restaurants/orders/${orderId}/reject`).then((r) => r.data);
+
+export const createRestaurant = (data) =>
+  axiosInstance.post('/api/v1/restaurants', data).then((r) => r.data);
+
+export const addMenuItem = (restaurantId, data) =>
+  axiosInstance.post(`/api/v1/restaurants/${restaurantId}/menu`, data).then((r) => r.data);
+
+export const getOwnerRestaurants = () =>
+  axiosInstance.get('/api/v1/restaurants').then((r) => r.data);

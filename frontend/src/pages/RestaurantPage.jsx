@@ -1,6 +1,7 @@
 import { useState } from 'react';
+// import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery , useQueryClient} from '@tanstack/react-query';
 import Navbar from '../components/Navbar';
 import { getRestaurants, getMenu } from '../api/restaurants';
 import { placeOrder } from '../api/orders';
@@ -8,11 +9,12 @@ import { placeOrder } from '../api/orders';
 export default function RestaurantPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [cart, setCart] = useState({});
   // cart = { [menuItemId]: { item, quantity } }
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState('');
-
+  
   const { data: restaurantsData } = useQuery({
     queryKey: ['restaurants'],
     queryFn: getRestaurants,
@@ -68,6 +70,7 @@ export default function RestaurantPage() {
           quantity,
         })),
       });
+      queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       navigate('/orders/my');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to place order');
